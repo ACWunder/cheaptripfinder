@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: #fafaf9;
+  color: #0f172a;
+  min-height: 100%;
+  /* Disable iOS Safari's gray flash on tap; we provide our own active states. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-image:
+    radial-gradient(at 12% 8%, rgba(165, 180, 252, 0.28) 0px, transparent 55%),
+    radial-gradient(at 88% 12%, rgba(244, 114, 182, 0.18) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(125, 211, 252, 0.22) 0px, transparent 60%);
+  /* `fixed` causes scroll glitches on iOS Safari; `scroll` is rock-solid. */
+  background-attachment: scroll;
+}
+
+@media (min-width: 768px) {
+  body {
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(
+      90deg,
+      rgba(241, 245, 249, 0) 0%,
+      rgba(226, 232, 240, 0.6) 50%,
+      rgba(241, 245, 249, 0) 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Honor iPhone notch / home-indicator. */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+  }
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top), 1rem);
+  }
+}
+
+/*
+ * iOS Safari auto-zooms when focusing an input whose font-size is < 16px.
+ * Force 16px on every form field; we use Tailwind text-* classes for visual
+ * sizing where it matters, but the zoom-trigger is purely about the
+ * computed font-size at focus time.
+ */
+input,
+select,
+textarea,
+button {
+  font-size: 16px;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+input[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  /* Bigger hit area on touch screens. */
+  height: 28px;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  background: linear-gradient(to right, #6366f1, #8b5cf6);
+  border-radius: 9999px;
+}
+input[type='range']::-moz-range-track {
+  height: 6px;
+  background: linear-gradient(to right, #6366f1, #8b5cf6);
+  border-radius: 9999px;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  width: 22px;
+  margin-top: -8px;
+  background: #fff;
+  border: 2px solid #6366f1;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  transition: transform 0.15s;
+}
+input[type='range']::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+input[type='range']::-moz-range-thumb {
+  height: 22px;
+  width: 22px;
+  background: #fff;
+  border: 2px solid #6366f1;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}

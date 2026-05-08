@@ -1,0 +1,292 @@
+{
+  "fares": [
+    {
+      "outbound": {
+        "departureAirport": {
+          "iataCode": "VIE",
+          "name": "VIE",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "AGP",
+          "name": "Malaga",
+          "countryName": "Spain",
+          "city": {
+            "name": "Malaga"
+          }
+        },
+        "departureDate": "2025-06-13T07:00:00",
+        "price": {
+          "value": 40.14,
+          "currencyCode": "EUR"
+        }
+      },
+      "inbound": {
+        "departureAirport": {
+          "iataCode": "AGP",
+          "name": "AGP",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "VIE",
+          "name": "Malaga",
+          "countryName": "Spain",
+          "city": {
+            "name": "Malaga"
+          }
+        },
+        "departureDate": "2025-06-16T07:00:00",
+        "price": {
+          "value": 32.85,
+          "currencyCode": "EUR"
+        }
+      },
+      "summary": {
+        "price": {
+          "value": 72.99,
+          "currencyCode": "EUR"
+        }
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "iataCode": "VIE",
+          "name": "VIE",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "PMI",
+          "name": "Palma",
+          "countryName": "Spain",
+          "city": {
+            "name": "Palma"
+          }
+        },
+        "departureDate": "2025-06-14T07:00:00",
+        "price": {
+          "value": 49.23,
+          "currencyCode": "EUR"
+        }
+      },
+      "inbound": {
+        "departureAirport": {
+          "iataCode": "PMI",
+          "name": "PMI",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "VIE",
+          "name": "Palma",
+          "countryName": "Spain",
+          "city": {
+            "name": "Palma"
+          }
+        },
+        "departureDate": "2025-06-17T07:00:00",
+        "price": {
+          "value": 40.27,
+          "currencyCode": "EUR"
+        }
+      },
+      "summary": {
+        "price": {
+          "value": 89.5,
+          "currencyCode": "EUR"
+        }
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "iataCode": "VIE",
+          "name": "VIE",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "ALC",
+          "name": "Alicante",
+          "countryName": "Spain",
+          "city": {
+            "name": "Alicante"
+          }
+        },
+        "departureDate": "2025-06-13T07:00:00",
+        "price": {
+          "value": 37.4,
+          "currencyCode": "EUR"
+        }
+      },
+      "inbound": {
+        "departureAirport": {
+          "iataCode": "ALC",
+          "name": "ALC",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "VIE",
+          "name": "Alicante",
+          "countryName": "Spain",
+          "city": {
+            "name": "Alicante"
+          }
+        },
+        "departureDate": "2025-06-16T07:00:00",
+        "price": {
+          "value": 30.6,
+          "currencyCode": "EUR"
+        }
+      },
+      "summary": {
+        "price": {
+          "value": 68.0,
+          "currencyCode": "EUR"
+        }
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "iataCode": "VIE",
+          "name": "VIE",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "DUB",
+          "name": "Dublin",
+          "countryName": "Ireland",
+          "city": {
+            "name": "Dublin"
+          }
+        },
+        "departureDate": "2025-06-13T07:00:00",
+        "price": {
+          "value": 30.24,
+          "currencyCode": "EUR"
+        }
+      },
+      "inbound": {
+        "departureAirport": {
+          "iataCode": "DUB",
+          "name": "DUB",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "VIE",
+          "name": "Dublin",
+          "countryName": "Ireland",
+          "city": {
+            "name": "Dublin"
+          }
+        },
+        "departureDate": "2025-06-16T07:00:00",
+        "price": {
+          "value": 24.75,
+          "currencyCode": "EUR"
+        }
+      },
+      "summary": {
+        "price": {
+          "value": 54.99,
+          "currencyCode": "EUR"
+        }
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "iataCode": "VIE",
+          "name": "VIE",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "BGY",
+          "name": "Milan",
+          "countryName": "Italy",
+          "city": {
+            "name": "Milan"
+          }
+        },
+        "departureDate": "2025-06-14T07:00:00",
+        "price": {
+          "value": 23.1,
+          "currencyCode": "EUR"
+        }
+      },
+      "inbound": {
+        "departureAirport": {
+          "iataCode": "BGY",
+          "name": "BGY",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "VIE",
+          "name": "Milan",
+          "countryName": "Italy",
+          "city": {
+            "name": "Milan"
+          }
+        },
+        "departureDate": "2025-06-17T07:00:00",
+        "price": {
+          "value": 18.9,
+          "currencyCode": "EUR"
+        }
+      },
+      "summary": {
+        "price": {
+          "value": 42.0,
+          "currencyCode": "EUR"
+        }
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "iataCode": "VIE",
+          "name": "VIE",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "CTA",
+          "name": "Catania",
+          "countryName": "Italy",
+          "city": {
+            "name": "Catania"
+          }
+        },
+        "departureDate": "2025-06-13T07:00:00",
+        "price": {
+          "value": 43.45,
+          "currencyCode": "EUR"
+        }
+      },
+      "inbound": {
+        "departureAirport": {
+          "iataCode": "CTA",
+          "name": "CTA",
+          "countryName": "Origin Country"
+        },
+        "arrivalAirport": {
+          "iataCode": "VIE",
+          "name": "Catania",
+          "countryName": "Italy",
+          "city": {
+            "name": "Catania"
+          }
+        },
+        "departureDate": "2025-06-16T07:00:00",
+        "price": {
+          "value": 35.55,
+          "currencyCode": "EUR"
+        }
+      },
+      "summary": {
+        "price": {
+          "value": 79.0,
+          "currencyCode": "EUR"
+        }
+      }
+    }
+  ]
+}

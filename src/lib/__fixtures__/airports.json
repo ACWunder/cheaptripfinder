@@ -1,0 +1,93 @@
+[
+  {
+    "code": "VIE",
+    "name": "Vienna",
+    "city": { "name": "Vienna", "code": "VIE" },
+    "country": { "code": "at", "name": "Austria" },
+    "coordinates": { "latitude": 48.1103, "longitude": 16.5697 }
+  },
+  {
+    "code": "BTS",
+    "name": "Bratislava",
+    "city": { "name": "Bratislava", "code": "BTS" },
+    "country": { "code": "sk", "name": "Slovakia" },
+    "coordinates": { "latitude": 48.1702, "longitude": 17.2127 }
+  },
+  {
+    "code": "BER",
+    "name": "Berlin Brandenburg",
+    "city": { "name": "Berlin", "code": "BER" },
+    "country": { "code": "de", "name": "Germany" },
+    "coordinates": { "latitude": 52.3667, "longitude": 13.5033 }
+  },
+  {
+    "code": "LEJ",
+    "name": "Leipzig/Halle",
+    "city": { "name": "Leipzig", "code": "LEJ" },
+    "country": { "code": "de", "name": "Germany" },
+    "coordinates": { "latitude": 51.4239, "longitude": 12.2364 }
+  },
+  {
+    "code": "AGP",
+    "name": "Malaga",
+    "city": { "name": "Malaga", "code": "AGP" },
+    "country": { "code": "es", "name": "Spain" },
+    "coordinates": { "latitude": 36.6749, "longitude": -4.4991 }
+  },
+  {
+    "code": "PMI",
+    "name": "Palma de Mallorca",
+    "city": { "name": "Palma", "code": "PMI" },
+    "country": { "code": "es", "name": "Spain" },
+    "coordinates": { "latitude": 39.5517, "longitude": 2.7388 }
+  },
+  {
+    "code": "ALC",
+    "name": "Alicante",
+    "city": { "name": "Alicante", "code": "ALC" },
+    "country": { "code": "es", "name": "Spain" },
+    "coordinates": { "latitude": 38.2822, "longitude": -0.5582 }
+  },
+  {
+    "code": "FAO",
+    "name": "Faro",
+    "city": { "name": "Faro", "code": "FAO" },
+    "country": { "code": "pt", "name": "Portugal" },
+    "coordinates": { "latitude": 37.0144, "longitude": -7.9659 }
+  },
+  {
+    "code": "NAP",
+    "name": "Naples",
+    "city": { "name": "Naples", "code": "NAP" },
+    "country": { "code": "it", "name": "Italy" },
+    "coordinates": { "latitude": 40.886, "longitude": 14.2908 }
+  },
+  {
+    "code": "CTA",
+    "name": "Catania",
+    "city": { "name": "Catania", "code": "CTA" },
+    "country": { "code": "it", "name": "Italy" },
+    "coordinates": { "latitude": 37.4668, "longitude": 15.0664 }
+  },
+  {
+    "code": "DUB",
+    "name": "Dublin",
+    "city": { "name": "Dublin", "code": "DUB" },
+    "country": { "code": "ie", "name": "Ireland" },
+    "coordinates": { "latitude": 53.4213, "longitude": -6.2701 }
+  },
+  {
+    "code": "STN",
+    "name": "London Stansted",
+    "city": { "name": "London", "code": "LON" },
+    "country": { "code": "gb", "name": "United Kingdom" },
+    "coordinates": { "latitude": 51.885, "longitude": 0.235 }
+  },
+  {
+    "code": "BGY",
+    "name": "Milan Bergamo",
+    "city": { "name": "Milan", "code": "MIL" },
+    "country": { "code": "it", "name": "Italy" },
+    "coordinates": { "latitude": 45.6739, "longitude": 9.7042 }
+  }
+]
