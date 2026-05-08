@@ -75,9 +75,35 @@ button {
   font-size: 16px;
 }
 
+/*
+ * iOS Safari sticks an implicit min-width onto <input type="date"> based on
+ * the native control's intrinsic content (locale date format + disclosure
+ * icon + chrome padding). That min-width can exceed the parent's width on
+ * narrow phones and bleed the input out of its rounded card frame.
+ *
+ * `-webkit-appearance: none` strips the native chrome so the input sizes
+ * like a regular text input. `min-width: 0` and the inner pseudo-element
+ * resets clear iOS's residual padding.
+ */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[type='month'] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+}
+input[type='date']::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
 input[type='date']::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.5;
+  padding: 0;
+  margin-left: 4px;
   transition: opacity 0.15s;
 }
 input[type='date']::-webkit-calendar-picker-indicator:hover {
