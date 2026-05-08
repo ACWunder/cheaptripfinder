@@ -37,17 +37,32 @@ import type { Airport, FareOption, IataCode, RegionAirport } from '@/types';
 
 export const maxDuration = 60;
 
-const SearchInputSchema = z.object({
-  regionAAirports: z.array(z.string().length(3)).min(1).max(8),
-  regionBAirports: z.array(z.string().length(3)).min(1).max(8),
-  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  tripDurationDaysMin: z.number().int().min(1).max(30),
-  tripDurationDaysMax: z.number().int().min(1).max(30),
-  maxPricePerPersonEur: z.number().int().min(20).max(2000),
-  weatherWeight: z.number().min(0).max(2),
-  dateMatchMode: z.enum(['strict', 'flex1']).default('strict'),
-});
+/** Hard cap on the search window. Larger windows fan Phase 2 out into too
+ *  many cheapestPerDay calls and make the result set noisy. */
+const MAX_SEARCH_WINDOW_DAYS = 14;
+
+function daysSpan(from: string, to: string): number {
+  const t1 = Date.parse(`${from}T00:00:00Z`);
+  const t2 = Date.parse(`${to}T00:00:00Z`);
+  return Math.round((t2 - t1) / 86400000);
+}
+
+const SearchInputSchema = z
+  .object({
+    regionAAirports: z.array(z.string().length(3)).min(1).max(8),
+    regionBAirports: z.array(z.string().length(3)).min(1).max(8),
+    dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    tripDurationDaysMin: z.number().int().min(1).max(30),
+    tripDurationDaysMax: z.number().int().min(1).max(30),
+    maxPricePerPersonEur: z.number().int().min(20).max(2000),
+    weatherWeight: z.number().min(0).max(2),
+    dateMatchMode: z.enum(['strict', 'flex1']).default('strict'),
+  })
+  .refine((v) => daysSpan(v.dateFrom, v.dateTo) <= MAX_SEARCH_WINDOW_DAYS, {
+    message: `Suchfenster darf maximal ${MAX_SEARCH_WINDOW_DAYS} Tage umfassen.`,
+    path: ['dateTo'],
+  });
 
 /** How many candidate destinations from Phase 1 to deeply analyze in Phase 2. */
 const PHASE2_TOP_N = 30;

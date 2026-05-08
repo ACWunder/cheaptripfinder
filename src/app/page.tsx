@@ -82,6 +82,9 @@ const REGION_OPTIONS: RegionOption[] = [
   { id: 'reykjavik', label: 'Raum Reykjavík', airports: ['KEF'] },
 ];
 
+/** Hard cap on the flexible search window. Mirrored server-side. */
+const MAX_SEARCH_WINDOW_DAYS = 14;
+
 const EUROPEAN_COUNTRY_CODES = new Set([
   'AL', 'AT', 'BA', 'BE', 'BG', 'CH', 'CY', 'CZ', 'DE', 'DK',
   'EE', 'ES', 'FI', 'FR', 'GB', 'GI', 'GR', 'HR', 'HU', 'IE',
@@ -218,6 +221,18 @@ function formatDeparture(isoTimestamp: string): string {
 
 function formatEur(amount: number): string {
   return eurFormatter.format(amount);
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysSpan(from: string, to: string): number {
+  const t1 = Date.parse(`${from}T00:00:00Z`);
+  const t2 = Date.parse(`${to}T00:00:00Z`);
+  return Math.round((t2 - t1) / 86400000);
 }
 
 // ─── Icons (inline SVG, no extra deps) ────────────────────────────────────────
@@ -467,16 +482,34 @@ export default function HomePage(): React.ReactElement {
   const [allAirports, setAllAirports] = useState<Airport[]>([]);
   const [airportsLoading, setAirportsLoading] = useState(true);
 
-  const [dateFrom, setDateFrom] = useState(() => {
+  const [dateFrom, setDateFromRaw] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 14);
     return d.toISOString().slice(0, 10);
   });
-  const [dateTo, setDateTo] = useState(() => {
+  const [dateTo, setDateToRaw] = useState(() => {
     const d = new Date();
-    d.setDate(d.getDate() + 60);
+    d.setDate(d.getDate() + 14 + MAX_SEARCH_WINDOW_DAYS);
     return d.toISOString().slice(0, 10);
   });
+
+  // Auto-clamp the date pair so the window never exceeds MAX_SEARCH_WINDOW_DAYS.
+  // The HTML min/max attributes prevent picker-based out-of-range picks; these
+  // setters cover manual typing or programmatic state mutation.
+  function setDateFrom(v: string): void {
+    setDateFromRaw(v);
+    if (v > dateTo) setDateToRaw(v);
+    else if (daysSpan(v, dateTo) > MAX_SEARCH_WINDOW_DAYS) {
+      setDateToRaw(addDaysIso(v, MAX_SEARCH_WINDOW_DAYS));
+    }
+  }
+  function setDateTo(v: string): void {
+    setDateToRaw(v);
+    if (v < dateFrom) setDateFromRaw(v);
+    else if (daysSpan(dateFrom, v) > MAX_SEARCH_WINDOW_DAYS) {
+      setDateFromRaw(addDaysIso(v, -MAX_SEARCH_WINDOW_DAYS));
+    }
+  }
   const [flexibleDates, setFlexibleDates] = useState(true);
   const [exactOutboundDate, setExactOutboundDate] = useState(() => {
     const d = new Date();
@@ -530,6 +563,11 @@ export default function HomePage(): React.ReactElement {
     if (flexibleDates) {
       if (dateFrom > dateTo) {
         setError('Frühester Hinflug muss vor oder am spätesten Hinflugdatum liegen.');
+        setLoading(false);
+        return;
+      }
+      if (daysSpan(dateFrom, dateTo) > MAX_SEARCH_WINDOW_DAYS) {
+        setError(`Suchfenster darf maximal ${MAX_SEARCH_WINDOW_DAYS} Tage umfassen.`);
         setLoading(false);
         return;
       }
@@ -664,21 +702,35 @@ export default function HomePage(): React.ReactElement {
           </div>
 
           {flexibleDates ? (
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Field label="Frühester Hinflug">
-                <DateInput value={dateFrom} onChange={setDateFrom} />
-              </Field>
-              <Field label="Spätester Hinflug">
-                <DateInput value={dateTo} onChange={setDateTo} />
-              </Field>
-              <Field label={`Reisedauer · ${durMin}–${durMax} Nächte`}>
-                <div className="flex min-w-0 items-center gap-2">
-                  <NumberInput value={durMin} onChange={setDurMin} min={1} max={30} />
-                  <span className="shrink-0 text-slate-400">–</span>
-                  <NumberInput value={durMax} onChange={setDurMax} min={1} max={30} />
-                </div>
-              </Field>
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Field label="Frühester Hinflug">
+                  <DateInput
+                    value={dateFrom}
+                    onChange={setDateFrom}
+                    max={dateTo}
+                  />
+                </Field>
+                <Field label="Spätester Hinflug">
+                  <DateInput
+                    value={dateTo}
+                    onChange={setDateTo}
+                    min={dateFrom}
+                    max={addDaysIso(dateFrom, MAX_SEARCH_WINDOW_DAYS)}
+                  />
+                </Field>
+                <Field label={`Reisedauer · ${durMin}–${durMax} Nächte`}>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <NumberInput value={durMin} onChange={setDurMin} min={1} max={30} />
+                    <span className="shrink-0 text-slate-400">–</span>
+                    <NumberInput value={durMax} onChange={setDurMax} min={1} max={30} />
+                  </div>
+                </Field>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Suchfenster: {daysSpan(dateFrom, dateTo)} von max. {MAX_SEARCH_WINDOW_DAYS} Tagen
+              </p>
+            </>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
               <Field label="Hinflug">
@@ -783,12 +835,24 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function DateInput({ value, onChange }: { value: string; onChange: (v: string) => void }): React.ReactElement {
+function DateInput({
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  min?: string;
+  max?: string;
+}): React.ReactElement {
   return (
     <input
       type="date"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      min={min}
+      max={max}
       className="block w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 text-base text-slate-900 shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/40 sm:px-3 sm:py-2.5 sm:text-sm"
     />
   );
