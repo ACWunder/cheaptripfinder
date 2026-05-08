@@ -20,9 +20,11 @@ export async function GET(): Promise<NextResponse> {
     // Non-fatal: fall back to catalogue-only.
   }
 
+  // Merge order: Ryanair first (broad coverage), then catalogue overlays
+  // (German city + country names, plus airports Ryanair doesn't list).
   const byIata = new Map<string, Airport>();
-  for (const a of AIRPORT_CATALOGUE) byIata.set(a.iata.toUpperCase(), a);
   for (const a of ryanair) byIata.set(a.iata.toUpperCase(), a);
+  for (const a of AIRPORT_CATALOGUE) byIata.set(a.iata.toUpperCase(), a);
 
   const airports = Array.from(byIata.values()).sort((a, b) =>
     a.cityName.localeCompare(b.cityName),

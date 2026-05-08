@@ -24,6 +24,7 @@ import {
   type DateMatchMode,
   type IntersectionRow,
 } from '@/lib/algorithm';
+import { AIRPORT_CATALOGUE } from '@/lib/airports/catalogue';
 import { listRegions } from '@/lib/regions';
 import {
   getActiveAirports,
@@ -133,14 +134,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
-  // Country-code enrichment from the active-airports list (best-effort).
+  // Country-code + city-name enrichment. Ryanair's list is broad but English;
+  // the catalogue overlays German names for the airports we curate.
   let airports: Airport[] = [];
   try {
     airports = await getActiveAirports();
   } catch {
     /* non-fatal */
   }
-  const airportsByIata = new Map(airports.map((a) => [a.iata, a]));
+  const airportsByIata = new Map<string, Airport>();
+  for (const a of airports) airportsByIata.set(a.iata, a);
+  for (const a of AIRPORT_CATALOGUE) airportsByIata.set(a.iata, a);
 
   // Find candidate destinations: served by at least one origin in BOTH regions.
   const destsA = new Set<IataCode>();
