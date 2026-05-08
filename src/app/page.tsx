@@ -359,7 +359,7 @@ function AirportPicker({
         <select
           value={regionId}
           onChange={(e) => onRegionChange(e.target.value)}
-          className={`w-full appearance-none rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-base text-slate-900 shadow-sm transition-all focus:outline-none focus:ring-4 sm:text-sm ${accentRing}`}
+          className={`block w-full min-w-0 max-w-full appearance-none rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 text-base text-slate-900 shadow-sm transition-all focus:outline-none focus:ring-4 sm:px-4 sm:py-3 sm:text-sm ${accentRing}`}
         >
           {REGION_OPTIONS.map((r) => (
             <option key={r.id} value={r.id}>
@@ -401,10 +401,10 @@ function AirportPicker({
             spellCheck={false}
             placeholder={
               airportsLoading
-                ? 'Flughäfen werden geladen…'
+                ? 'Flughäfen laden…'
                 : maxReached
-                  ? 'Maximal 8 Flughäfen ausgewählt'
-                  : 'Stadt, Flughafen oder IATA…'
+                  ? 'Max 8 ausgewählt'
+                  : 'Stadt oder IATA…'
             }
             value={search}
             onChange={(e) => {
@@ -413,7 +413,7 @@ function AirportPicker({
             }}
             onFocus={() => setDropdownOpen(true)}
             disabled={airportsLoading || maxReached}
-            className={`w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-base shadow-sm transition-all placeholder:text-slate-400 focus:outline-none focus:ring-4 disabled:opacity-50 sm:text-sm ${accentRing}`}
+            className={`block w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 text-base shadow-sm transition-all placeholder:text-slate-400 focus:outline-none focus:ring-4 disabled:opacity-50 sm:px-4 sm:py-3 sm:text-sm ${accentRing}`}
           />
 
           {dropdownOpen && filtered.length > 0 && (
@@ -457,8 +457,8 @@ function AirportPicker({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage(): React.ReactElement {
-  const [modeA, setModeA] = useState<PickerMode>('region');
-  const [modeB, setModeB] = useState<PickerMode>('region');
+  const [modeA, setModeA] = useState<PickerMode>('airport');
+  const [modeB, setModeB] = useState<PickerMode>('airport');
   const [regionA, setRegionA] = useState('vienna');
   const [regionB, setRegionB] = useState('berlin');
   const [airportsA, setAirportsA] = useState<Airport[]>([]);
@@ -611,7 +611,7 @@ export default function HomePage(): React.ReactElement {
         onSubmit={onSubmit}
         className="mb-8 rounded-2xl border border-white/60 bg-white/40 p-4 shadow-soft backdrop-blur-xl sm:rounded-3xl sm:p-6 md:mb-10 md:p-8"
       >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
           <AirportPicker
             label="Abflug"
             badge="A"
@@ -664,7 +664,7 @@ export default function HomePage(): React.ReactElement {
           </div>
 
           {flexibleDates ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               <Field label="Frühester Hinflug">
                 <DateInput value={dateFrom} onChange={setDateFrom} />
               </Field>
@@ -672,15 +672,15 @@ export default function HomePage(): React.ReactElement {
                 <DateInput value={dateTo} onChange={setDateTo} />
               </Field>
               <Field label={`Reisedauer · ${durMin}–${durMax} Nächte`}>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <NumberInput value={durMin} onChange={setDurMin} min={1} max={30} />
-                  <span className="text-slate-400">–</span>
+                  <span className="shrink-0 text-slate-400">–</span>
                   <NumberInput value={durMax} onChange={setDurMax} min={1} max={30} />
                 </div>
               </Field>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
               <Field label="Hinflug">
                 <DateInput value={exactOutboundDate} onChange={setExactOutboundDate} />
               </Field>
@@ -776,7 +776,7 @@ export default function HomePage(): React.ReactElement {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }): React.ReactElement {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="mb-1.5 block text-xs font-medium text-slate-600">{label}</span>
       {children}
     </label>
@@ -789,7 +789,7 @@ function DateInput({ value, onChange }: { value: string; onChange: (v: string) =
       type="date"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-3 text-base text-slate-900 shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/40 sm:py-2.5 sm:text-sm"
+      className="block w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 text-base text-slate-900 shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/40 sm:px-3 sm:py-2.5 sm:text-sm"
     />
   );
 }
@@ -813,7 +813,7 @@ function NumberInput({
       max={max}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-3 text-base tabular-nums text-slate-900 shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/40 sm:py-2.5 sm:text-sm"
+      className="block w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 text-base tabular-nums text-slate-900 shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/40 sm:px-3 sm:py-2.5 sm:text-sm"
     />
   );
 }

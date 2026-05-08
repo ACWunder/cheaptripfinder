@@ -8,9 +8,36 @@ const inter = Inter({
   display: 'swap',
 });
 
+const SITE_DESCRIPTION =
+  'Findet das günstigste gemeinsame Reiseziel für zwei Freunde aus unterschiedlichen Städten.';
+
+// Absolute base URL so OG/Twitter image links resolve when shared.
+// On Vercel, VERCEL_PROJECT_PRODUCTION_URL or VERCEL_URL is auto-injected.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000');
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'CheapTripFinder',
-  description: 'Finde günstige Reiseziele, die zwei Freunde aus unterschiedlichen Städten erreichen können.',
+  description: SITE_DESCRIPTION,
+  applicationName: 'CheapTripFinder',
+  openGraph: {
+    title: 'CheapTripFinder',
+    description: SITE_DESCRIPTION,
+    type: 'website',
+    locale: 'de_DE',
+    siteName: 'CheapTripFinder',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CheapTripFinder',
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
