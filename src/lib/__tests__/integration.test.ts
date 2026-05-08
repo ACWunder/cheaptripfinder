@@ -6,11 +6,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  cheapestPerDestination,
-  intersectDestinations,
-  rankResults,
-} from '@/lib/algorithm';
+import { intersectDestinations, rankResults } from '@/lib/algorithm';
 import { _resetCacheForTests, getRoundTripFares } from '@/lib/ryanair/client';
 import type { RegionAirport } from '@/types';
 
@@ -46,9 +42,7 @@ describe('end-to-end with fixtures', () => {
     const aFares = allFares.filter((f) => VIENNA.some((x) => x.iata === f.origin));
     const bFares = allFares.filter((f) => BERLIN.some((x) => x.iata === f.origin));
 
-    const aBest = cheapestPerDestination(aFares, VIENNA);
-    const bBest = cheapestPerDestination(bFares, BERLIN);
-    const intersect = intersectDestinations(aBest, bBest);
+    const intersect = intersectDestinations(aFares, bFares, VIENNA, BERLIN);
 
     const dests = intersect.map((r) => r.destination).sort();
     // From the fixture design:
@@ -70,10 +64,17 @@ describe('end-to-end with fixtures', () => {
     };
     const vieFares = await getRoundTripFares({ ...q, origin: 'VIE' });
     const btsFares = await getRoundTripFares({ ...q, origin: 'BTS' });
-    const aBest = cheapestPerDestination([...vieFares, ...btsFares], VIENNA);
-    const pmi = aBest.find((r) => r.destination === 'PMI');
-    expect(pmi?.bestFare.origin).toBe('BTS'); // not VIE
-    expect(pmi?.bestFare.priceEur).toBeLessThan(50);
+    // PMI exists in both VIE and BTS fixtures with the same date pair, so the
+    // intersection-against-itself will pick BTS as the cheaper origin.
+    const intersect = intersectDestinations(
+      [...vieFares, ...btsFares],
+      [...vieFares, ...btsFares],
+      VIENNA,
+      VIENNA,
+    );
+    const pmi = intersect.find((r) => r.destination === 'PMI');
+    expect(pmi?.fromA.bestFare.origin).toBe('BTS');
+    expect(pmi?.fromA.bestFare.priceEur).toBeLessThan(50);
   });
 
   it('full pipeline produces a ranked top-N result', async () => {
@@ -87,9 +88,7 @@ describe('end-to-end with fixtures', () => {
     const aFares = (await Promise.all(VIENNA.map((a) => getRoundTripFares({ ...q, origin: a.iata })))).flat();
     const bFares = (await Promise.all(BERLIN.map((a) => getRoundTripFares({ ...q, origin: a.iata })))).flat();
 
-    const aBest = cheapestPerDestination(aFares, VIENNA);
-    const bBest = cheapestPerDestination(bFares, BERLIN);
-    const intersect = intersectDestinations(aBest, bBest);
+    const intersect = intersectDestinations(aFares, bFares, VIENNA, BERLIN);
 
     const ranked = rankResults(intersect, new Map(), { weatherWeight: 0 });
     expect(ranked.length).toBeGreaterThan(0);

@@ -25,49 +25,17 @@ import type {
 } from '@/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 1: per-region cheapest-per-destination
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Given a flat list of FareOption from many origins in one region,
- * pick the cheapest fare per destination. If two fares tie on price,
- * the one with shorter ground-time-from-center wins.
- */
-export function cheapestPerDestination(
-  fares: FareOption[],
-  regionAirports: RegionAirport[],
-): RegionBestFare[] {
-  const groundByIata = new Map(regionAirports.map((a) => [a.iata, a.groundMinutesFromCenter]));
-  const best = new Map<IataCode, RegionBestFare>();
-
-  for (const fare of fares) {
-    const ground = groundByIata.get(fare.origin);
-    if (ground === undefined) {
-      // Fare from an airport not in this region's set — ignore.
-      continue;
-    }
-    const existing = best.get(fare.destination);
-    const candidate: RegionBestFare = {
-      destination: fare.destination,
-      destinationCityName: fare.destinationCityName,
-      destinationCountryCode: fare.destinationCountryCode,
-      bestFare: fare,
-      groundMinutesFromCenter: ground,
-    };
-    if (
-      !existing ||
-      fare.priceEur < existing.bestFare.priceEur ||
-      (fare.priceEur === existing.bestFare.priceEur &&
-        ground < existing.groundMinutesFromCenter)
-    ) {
-      best.set(fare.destination, candidate);
-    }
-  }
-  return Array.from(best.values());
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Step 2: intersect destinations between two regions
+// Step 1+2: date-matched intersection
+//
+// A "shared trip" only makes sense if both friends are at the destination
+// AT THE SAME TIME — i.e. same outbound date AND same return date. We can't
+// pick the cheapest fare per region independently and then merge by
+// destination; that produces two unrelated trips that happen to share a city.
+//
+// The match key is therefore (destination, outboundDate, inboundDate). For
+// each such triple that exists in both regions, the cheapest origin per side
+// wins, and per destination we then pick the date pair with the lowest
+// combined price.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface IntersectionRow {
@@ -76,17 +44,89 @@ export interface IntersectionRow {
   fromB: RegionBestFare;
 }
 
-export function intersectDestinations(
-  regionA: RegionBestFare[],
-  regionB: RegionBestFare[],
-): IntersectionRow[] {
-  const aMap = new Map(regionA.map((r) => [r.destination, r]));
-  const out: IntersectionRow[] = [];
-  for (const b of regionB) {
-    const a = aMap.get(b.destination);
-    if (a) out.push({ destination: b.destination, fromA: a, fromB: b });
+interface RegionBestFareCandidate {
+  fare: FareOption;
+  ground: number;
+}
+
+function tripKey(f: FareOption): string {
+  return `${f.destination}|${f.outboundDate}|${f.inboundDate}`;
+}
+
+/**
+ * For one region's flat fare list, group by (destination, outboundDate,
+ * inboundDate) and keep the cheapest origin per group. Ties broken by ground
+ * time from center.
+ */
+function cheapestPerTrip(
+  fares: FareOption[],
+  regionAirports: RegionAirport[],
+): Map<string, RegionBestFareCandidate> {
+  const groundByIata = new Map(regionAirports.map((a) => [a.iata, a.groundMinutesFromCenter]));
+  const best = new Map<string, RegionBestFareCandidate>();
+  for (const fare of fares) {
+    const ground = groundByIata.get(fare.origin);
+    if (ground === undefined) continue; // fare from an airport not in this region
+    const key = tripKey(fare);
+    const existing = best.get(key);
+    if (
+      !existing ||
+      fare.priceEur < existing.fare.priceEur ||
+      (fare.priceEur === existing.fare.priceEur && ground < existing.ground)
+    ) {
+      best.set(key, { fare, ground });
+    }
   }
-  return out;
+  return best;
+}
+
+/**
+ * Match destinations across both regions on the SAME outbound + inbound dates.
+ * Returns one row per shared destination, using the date pair with the lowest
+ * combined price.
+ */
+export function intersectDestinations(
+  faresA: FareOption[],
+  faresB: FareOption[],
+  regionAirportsA: RegionAirport[],
+  regionAirportsB: RegionAirport[],
+): IntersectionRow[] {
+  const aByTrip = cheapestPerTrip(faresA, regionAirportsA);
+  const bByTrip = cheapestPerTrip(faresB, regionAirportsB);
+
+  const cheapestPerDest = new Map<IataCode, IntersectionRow>();
+  for (const [key, a] of aByTrip) {
+    const b = bByTrip.get(key);
+    if (!b) continue;
+
+    const dest = a.fare.destination;
+    const candidate: IntersectionRow = {
+      destination: dest,
+      fromA: {
+        destination: dest,
+        destinationCityName: a.fare.destinationCityName,
+        destinationCountryCode: a.fare.destinationCountryCode,
+        bestFare: a.fare,
+        groundMinutesFromCenter: a.ground,
+      },
+      fromB: {
+        destination: dest,
+        destinationCityName: b.fare.destinationCityName,
+        destinationCountryCode: b.fare.destinationCountryCode,
+        bestFare: b.fare,
+        groundMinutesFromCenter: b.ground,
+      },
+    };
+    const existing = cheapestPerDest.get(dest);
+    if (!existing) {
+      cheapestPerDest.set(dest, candidate);
+    } else {
+      const candidateTotal = a.fare.priceEur + b.fare.priceEur;
+      const existingTotal = existing.fromA.bestFare.priceEur + existing.fromB.bestFare.priceEur;
+      if (candidateTotal < existingTotal) cheapestPerDest.set(dest, candidate);
+    }
+  }
+  return Array.from(cheapestPerDest.values());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

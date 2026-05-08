@@ -14,11 +14,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import {
-  cheapestPerDestination,
-  intersectDestinations,
-  rankResults,
-} from '@/lib/algorithm';
+import { intersectDestinations, rankResults } from '@/lib/algorithm';
 import { listRegions } from '@/lib/regions';
 import { getActiveAirports, getRoundTripFares } from '@/lib/ryanair/client';
 import { getWeatherBatch } from '@/lib/weather';
@@ -126,10 +122,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   const enrichedA = enrichFaresWithCountry(regionAFares, airports);
   const enrichedB = enrichFaresWithCountry(regionBFares, airports);
 
-  // 3. Per-region cheapest, then intersect.
-  const bestA = cheapestPerDestination(enrichedA, regionA);
-  const bestB = cheapestPerDestination(enrichedB, regionB);
-  const intersection = intersectDestinations(bestA, bestB);
+  // 3. Intersect on (destination, outbound date, inbound date) so both
+  //    friends are at the destination at the same time.
+  const intersection = intersectDestinations(enrichedA, enrichedB, regionA, regionB);
 
   // 4. Weather lookup: one query per surviving destination.
   const airportsByIata = new Map(airports.map((a) => [a.iata, a]));
@@ -150,12 +145,15 @@ export async function POST(req: Request): Promise<NextResponse> {
     weatherWeight: parsed.weatherWeight,
   });
 
+  const uniqueDestsA = new Set(enrichedA.map((f) => f.destination)).size;
+  const uniqueDestsB = new Set(enrichedB.map((f) => f.destination)).size;
+
   return NextResponse.json({
     counts: {
       regionAFares: regionAFares.length,
       regionBFares: regionBFares.length,
-      regionADestinations: bestA.length,
-      regionBDestinations: bestB.length,
+      regionADestinations: uniqueDestsA,
+      regionBDestinations: uniqueDestsB,
       commonDestinations: intersection.length,
     },
     results: ranked.slice(0, 20),
