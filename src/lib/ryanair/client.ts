@@ -24,8 +24,10 @@ import { z } from 'zod';
 
 import {
   RyanairActiveAirportsSchema,
+  RyanairCheapestPerDayResponseSchema,
   RyanairRoundTripFaresResponseSchema,
   type RyanairAirport,
+  type RyanairCheapestPerDayResponse,
   type RyanairRoundTripFaresResponse,
 } from './schemas';
 import type { Airport, FareOption, IataCode } from '@/types';
@@ -139,7 +141,7 @@ function ryanairAirportToDomain(a: RyanairAirport): Airport {
   };
 }
 
-function buildBookingUrl(
+export function buildBookingUrl(
   origin: IataCode,
   destination: IataCode,
   outboundDate: string,
@@ -162,7 +164,7 @@ function buildBookingUrl(
   return `https://www.ryanair.com/gb/en/trip/flights/select?${params.toString()}`;
 }
 
-function buildOneWayBookingUrl(
+export function buildOneWayBookingUrl(
   origin: IataCode,
   destination: IataCode,
   departureDate: string,
@@ -313,10 +315,81 @@ export async function getRoundTripFares(q: RoundTripFaresQuery): Promise<FareOpt
   return filtered;
 }
 
-function shiftIsoDate(iso: string, days: number): string {
+export function shiftIsoDate(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// cheapestPerDay — one cheapest one-way fare per day for a single route
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A single bookable one-way leg on a specific day. */
+export interface DailyFare {
+  day: string; // YYYY-MM-DD
+  priceEur: number;
+  departureAt: string; // ISO timestamp
+  arrivalAt: string; // ISO timestamp
+}
+
+export interface CheapestPerDayQuery {
+  origin: IataCode;
+  destination: IataCode;
+  /** Any date inside the month to query. The endpoint returns the full month. */
+  monthOfDate: string; // YYYY-MM-DD
+}
+
+/** Fetch the daily-cheapest one-way calendar for a single route, one month. */
+export async function getCheapestPerDay(q: CheapestPerDayQuery): Promise<DailyFare[]> {
+  const cacheKey = `cpd:${q.origin}:${q.destination}:${q.monthOfDate.slice(0, 7)}`;
+  const cached = cacheGet<DailyFare[]>(cacheKey);
+  if (cached) return cached;
+
+  const mode = getMode();
+  let resp: RyanairCheapestPerDayResponse;
+
+  if (mode === 'fixtures') {
+    // Fixtures don't ship cheapestPerDay calendars — synthesize an empty one
+    // rather than 404. Tests that need this mock it explicitly.
+    cacheSet(cacheKey, []);
+    return [];
+  }
+
+  const url = new URL(
+    `${BASE_URL}/farfnd/v4/oneWayFares/${q.origin}/${q.destination}/cheapestPerDay`,
+  );
+  url.searchParams.set('outboundMonthOfDate', q.monthOfDate);
+  url.searchParams.set('currency', 'EUR');
+  url.searchParams.set('market', 'en-gb');
+
+  try {
+    const json = await fetchJson(url.toString());
+    resp = RyanairCheapestPerDayResponseSchema.parse(json);
+  } catch (err) {
+    if (mode === 'live-fallback') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[ryanair] cheapestPerDay live failed for ${q.origin}-${q.destination} ${q.monthOfDate.slice(0, 7)}:`,
+        (err as Error).message,
+      );
+      cacheSet(cacheKey, []);
+      return [];
+    }
+    throw err;
+  }
+
+  const fares: DailyFare[] = resp.outbound.fares
+    .filter((f) => !f.unavailable && !f.soldOut && f.price && f.departureDate && f.arrivalDate)
+    .map((f) => ({
+      day: f.day,
+      priceEur: f.price!.value,
+      departureAt: f.departureDate!,
+      arrivalAt: f.arrivalDate!,
+    }));
+
+  cacheSet(cacheKey, fares);
+  return fares;
 }
 
 /** TEST-ONLY: clear the in-memory cache. */

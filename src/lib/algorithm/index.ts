@@ -14,6 +14,11 @@
  *   5. rankResults applies ground-time penalty, weather weighting, sorting.
  */
 
+import {
+  buildBookingUrl,
+  buildOneWayBookingUrl,
+  type DailyFare,
+} from '@/lib/ryanair/client';
 import type {
   FareOption,
   IataCode,
@@ -28,20 +33,245 @@ import type {
 // Step 1+2: date-matched intersection
 //
 // A "shared trip" only makes sense if both friends are at the destination
-// AT THE SAME TIME — i.e. same outbound date AND same return date. We can't
-// pick the cheapest fare per region independently and then merge by
-// destination; that produces two unrelated trips that happen to share a city.
+// AT THE SAME TIME. The matching is built on top of a per-route daily fare
+// calendar (Ryanair's /cheapestPerDay), not the heuristic single-cheapest
+// roundTripFares — otherwise we'd be hoping that two independently-cheapest
+// trips happen to share dates, which they almost never do.
 //
-// The match key is therefore (destination, outboundDate, inboundDate). For
-// each such triple that exists in both regions, the cheapest origin per side
-// wins, and per destination we then pick the date pair with the lowest
-// combined price.
+// `findBestSharedTrip` is the per-destination workhorse: it gets the daily
+// outbound + inbound calendars for every origin in both regions, builds all
+// valid round-trips per region, then matches across regions on the SAME
+// (outDate, inDate) pair (or ±1 day if mode='flex1'). Per destination, the
+// cheapest matching pair wins.
+//
+// `intersectDestinations` is retained for back-compat with tests + the older
+// roundTripFares path; it does the same thing but without per-day granularity.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface IntersectionRow {
   destination: IataCode;
   fromA: RegionBestFare;
   fromB: RegionBestFare;
+}
+
+export type DateMatchMode = 'strict' | 'flex1';
+
+/** A round-trip built from two one-way calendar entries, for one origin in one region. */
+interface RoundTripCandidate {
+  outDate: string;
+  inDate: string;
+  origin: IataCode;
+  outFare: DailyFare;
+  inFare: DailyFare;
+  totalPriceEur: number;
+  groundMinutesFromCenter: number;
+}
+
+function shiftIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysBetween(outDay: string, inDay: string): number {
+  const out = Date.parse(`${outDay}T00:00:00Z`);
+  const back = Date.parse(`${inDay}T00:00:00Z`);
+  return Math.round((back - out) / 86400000);
+}
+
+/**
+ * For one region, enumerate every (outDate, inDate) day-pair where:
+ *   - there's an outbound flight on outDate and an inbound flight on inDate
+ *     from the SAME origin (a single person can't fly out from VIE and back into BTS)
+ *   - the duration is within the user's [durMin, durMax] range
+ *   - outDate is within the search window
+ *   - the round-trip price ≤ maxPriceEur
+ * Returns one candidate per (outDate, inDate), keeping the cheapest origin.
+ * Ties broken by ground time from city center.
+ */
+function buildRoundTripsPerDayPair(
+  outboundByOrigin: Map<IataCode, Map<string, DailyFare>>,
+  inboundByOrigin: Map<IataCode, Map<string, DailyFare>>,
+  regionAirports: RegionAirport[],
+  durMin: number,
+  durMax: number,
+  outFrom: string,
+  outTo: string,
+  maxPriceEur: number,
+): Map<string, RoundTripCandidate> {
+  const result = new Map<string, RoundTripCandidate>();
+
+  for (const region of regionAirports) {
+    const out = outboundByOrigin.get(region.iata);
+    const back = inboundByOrigin.get(region.iata);
+    if (!out || !back) continue;
+
+    for (const [outDay, outFare] of out) {
+      if (outDay < outFrom || outDay > outTo) continue;
+      for (const [inDay, inFare] of back) {
+        const nights = daysBetween(outDay, inDay);
+        if (nights < durMin || nights > durMax) continue;
+        const total = outFare.priceEur + inFare.priceEur;
+        if (total > maxPriceEur) continue;
+
+        const key = `${outDay}|${inDay}`;
+        const existing = result.get(key);
+        if (
+          !existing ||
+          total < existing.totalPriceEur ||
+          (total === existing.totalPriceEur &&
+            region.groundMinutesFromCenter < existing.groundMinutesFromCenter)
+        ) {
+          result.set(key, {
+            outDate: outDay,
+            inDate: inDay,
+            origin: region.iata,
+            outFare,
+            inFare,
+            totalPriceEur: total,
+            groundMinutesFromCenter: region.groundMinutesFromCenter,
+          });
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Match A's per-day-pair trips with B's. In `strict` mode, both outbound
+ * dates and both inbound dates must match exactly. In `flex1` mode, each
+ * may differ by up to one day (so the two friends' itineraries are at most
+ * a day off, but the trip overlap is still real).
+ *
+ * Returns the cheapest matched pair, or null if no overlap exists.
+ */
+function bestMatchAcrossRegions(
+  aTrips: Map<string, RoundTripCandidate>,
+  bTrips: Map<string, RoundTripCandidate>,
+  mode: DateMatchMode,
+): { a: RoundTripCandidate; b: RoundTripCandidate; combined: number } | null {
+  const offsets = mode === 'strict' ? [0] : [-1, 0, 1];
+  let best: { a: RoundTripCandidate; b: RoundTripCandidate; combined: number } | null = null;
+
+  for (const a of aTrips.values()) {
+    for (const dOut of offsets) {
+      for (const dIn of offsets) {
+        const key = `${shiftIso(a.outDate, dOut)}|${shiftIso(a.inDate, dIn)}`;
+        const b = bTrips.get(key);
+        if (!b) continue;
+        const combined = a.totalPriceEur + b.totalPriceEur;
+        if (!best || combined < best.combined) best = { a, b, combined };
+      }
+    }
+  }
+  return best;
+}
+
+function dailyToFareOption(
+  origin: IataCode,
+  destination: IataCode,
+  destinationCityName: string,
+  destinationCountryCode: string,
+  outFare: DailyFare,
+  inFare: DailyFare,
+): FareOption {
+  return {
+    origin,
+    destination,
+    destinationCityName,
+    destinationCountryCode,
+    outboundPriceEur: outFare.priceEur,
+    inboundPriceEur: inFare.priceEur,
+    priceEur: outFare.priceEur + inFare.priceEur,
+    outboundDate: outFare.day,
+    inboundDate: inFare.day,
+    outboundDepartureAt: outFare.departureAt,
+    inboundDepartureAt: inFare.departureAt,
+    outboundBookingUrl: buildOneWayBookingUrl(origin, destination, outFare.day),
+    inboundBookingUrl: buildOneWayBookingUrl(destination, origin, inFare.day),
+    bookingUrl: buildBookingUrl(origin, destination, outFare.day, inFare.day),
+  };
+}
+
+export interface SharedTripQuery {
+  destination: IataCode;
+  destinationCityName: string;
+  destinationCountryCode: string;
+  regionAirportsA: RegionAirport[];
+  regionAirportsB: RegionAirport[];
+  /** outbound[origin][day] = DailyFare. Origin is in either region. */
+  outboundByOrigin: Map<IataCode, Map<string, DailyFare>>;
+  /** inbound[origin][day] = DailyFare (returns to that origin). */
+  inboundByOrigin: Map<IataCode, Map<string, DailyFare>>;
+  outboundDateFrom: string;
+  outboundDateTo: string;
+  durationDaysMin: number;
+  durationDaysMax: number;
+  maxPricePerPersonEur: number;
+  mode: DateMatchMode;
+}
+
+/**
+ * Build the best shared round-trip for a single destination, given full
+ * daily-calendar data for both regions. Returns null if no compatible
+ * (outDate, inDate) pair exists across regions.
+ */
+export function findBestSharedTrip(q: SharedTripQuery): IntersectionRow | null {
+  const aTrips = buildRoundTripsPerDayPair(
+    q.outboundByOrigin,
+    q.inboundByOrigin,
+    q.regionAirportsA,
+    q.durationDaysMin,
+    q.durationDaysMax,
+    q.outboundDateFrom,
+    q.outboundDateTo,
+    q.maxPricePerPersonEur,
+  );
+  const bTrips = buildRoundTripsPerDayPair(
+    q.outboundByOrigin,
+    q.inboundByOrigin,
+    q.regionAirportsB,
+    q.durationDaysMin,
+    q.durationDaysMax,
+    q.outboundDateFrom,
+    q.outboundDateTo,
+    q.maxPricePerPersonEur,
+  );
+
+  const matched = bestMatchAcrossRegions(aTrips, bTrips, q.mode);
+  if (!matched) return null;
+
+  const fromA: RegionBestFare = {
+    destination: q.destination,
+    destinationCityName: q.destinationCityName,
+    destinationCountryCode: q.destinationCountryCode,
+    bestFare: dailyToFareOption(
+      matched.a.origin,
+      q.destination,
+      q.destinationCityName,
+      q.destinationCountryCode,
+      matched.a.outFare,
+      matched.a.inFare,
+    ),
+    groundMinutesFromCenter: matched.a.groundMinutesFromCenter,
+  };
+  const fromB: RegionBestFare = {
+    destination: q.destination,
+    destinationCityName: q.destinationCityName,
+    destinationCountryCode: q.destinationCountryCode,
+    bestFare: dailyToFareOption(
+      matched.b.origin,
+      q.destination,
+      q.destinationCityName,
+      q.destinationCountryCode,
+      matched.b.outFare,
+      matched.b.inFare,
+    ),
+    groundMinutesFromCenter: matched.b.groundMinutesFromCenter,
+  };
+
+  return { destination: q.destination, fromA, fromB };
 }
 
 interface RegionBestFareCandidate {

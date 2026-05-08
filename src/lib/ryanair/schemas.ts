@@ -109,3 +109,41 @@ export const RyanairRoundTripFaresResponseSchema = z
 
 export type RyanairRoundTripFare = z.infer<typeof RyanairRoundTripFareSchema>;
 export type RyanairRoundTripFaresResponse = z.infer<typeof RyanairRoundTripFaresResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /farfnd/v4/oneWayFares/{origin}/{destination}/cheapestPerDay
+//
+// Returns one cheapest fare per day for a single route within one calendar
+// month. Used to build a true daily availability calendar — the only way to
+// get more than one option per (origin, destination) without per-day calls.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RyanairCheapestPerDayFareSchema = z
+  .object({
+    day: z.string(), // YYYY-MM-DD
+    arrivalDate: z.string().nullable(),
+    departureDate: z.string().nullable(),
+    price: z
+      .object({
+        value: z.number(),
+        currencyCode: z.string(),
+      })
+      .passthrough()
+      .nullable(),
+    soldOut: z.boolean().optional(),
+    unavailable: z.boolean().optional(),
+  })
+  .passthrough();
+
+export const RyanairCheapestPerDayResponseSchema = z
+  .object({
+    outbound: z
+      .object({
+        fares: z.array(RyanairCheapestPerDayFareSchema),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+export type RyanairCheapestPerDayFare = z.infer<typeof RyanairCheapestPerDayFareSchema>;
+export type RyanairCheapestPerDayResponse = z.infer<typeof RyanairCheapestPerDayResponseSchema>;

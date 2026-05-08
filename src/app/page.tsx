@@ -491,6 +491,7 @@ export default function HomePage(): React.ReactElement {
   const [durMin, setDurMin] = useState(3);
   const [durMax, setDurMax] = useState(5);
   const [maxPrice, setMaxPrice] = useState(150);
+  const [dateMatchMode, setDateMatchMode] = useState<'strict' | 'flex1'>('strict');
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SearchResponse | null>(null);
@@ -575,6 +576,7 @@ export default function HomePage(): React.ReactElement {
           tripDurationDaysMax: searchDurMax,
           maxPricePerPersonEur: maxPrice,
           weatherWeight: 0,
+          dateMatchMode,
         }),
       });
       if (!res.ok) {
@@ -708,6 +710,34 @@ export default function HomePage(): React.ReactElement {
           <div className="mt-1 flex justify-between text-xs text-slate-400">
             <span>50 €</span>
             <span>500 €</span>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-slate-200/70 bg-white/60 p-4 shadow-soft backdrop-blur-md sm:p-5 md:mt-6">
+          <div className="mb-1 text-sm font-semibold text-slate-900">Reisedaten beider Personen</div>
+          <p className="mb-3 text-xs text-slate-500">
+            Standard: identische Hin- und Rückflugtage. Flexibel erlaubt bis zu 1 Tag Unterschied —
+            spart oft Geld, ihr seid aber nicht jeden Tag zusammen.
+          </p>
+          <div className="inline-flex rounded-full border border-slate-200 bg-slate-100/80 p-1">
+            <button
+              type="button"
+              onClick={() => setDateMatchMode('strict')}
+              className={`rounded-full px-4 py-2 text-xs font-medium transition-all active:scale-95 ${
+                dateMatchMode === 'strict' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              Exakt gleich
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateMatchMode('flex1')}
+              className={`rounded-full px-4 py-2 text-xs font-medium transition-all active:scale-95 ${
+                dateMatchMode === 'flex1' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              ±1 Tag flexibel
+            </button>
           </div>
         </div>
 
