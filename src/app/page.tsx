@@ -703,6 +703,12 @@ export default function HomePage(): React.ReactElement {
 
           {flexibleDates ? (
             <>
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-900">
+                <span className="font-semibold">Max. 14 Tage Suchfenster</span>
+                <span className="text-amber-800/70">
+                  · aktuell {daysSpan(dateFrom, dateTo)} {daysSpan(dateFrom, dateTo) === 1 ? 'Tag' : 'Tage'}
+                </span>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Field label="Frühester Hinflug">
                   <DateInput
@@ -727,9 +733,6 @@ export default function HomePage(): React.ReactElement {
                   </div>
                 </Field>
               </div>
-              <p className="mt-2 text-xs text-slate-500">
-                Suchfenster: {daysSpan(dateFrom, dateTo)} von max. {MAX_SEARCH_WINDOW_DAYS} Tagen
-              </p>
             </>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
